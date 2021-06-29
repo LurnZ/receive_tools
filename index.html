@@ -1,0 +1,529 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <meta name="PowerLog" content="PowerLog"/>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8"/>
+    <title>RTOS项目可继承的功耗日志模块 V2.0</title>
+    <style>
+		.{margin:0;padding:0;}
+		body{margin:0;padding:0;}
+
+		#grid{border:1px red solid;width:1200px;height:480px;margin:0 auto;}
+		#gride tr td{border:0px green solid;width:;}
+
+		.button_style{width:100px;height:40px;line-height:40px;float:left;text-align:center;border:1px #fff solid;margin-left:60px;background-color:#369;color:#fff;}
+
+    </style>
+
+    <script type="text/javascript" src="http://172.16.48.153/js/date.js"></script>
+    <!--	<script type="text/javascript" src="http://172.16.48.153/js/mydata3.js"></script>-->
+    <script type="text/javascript" src="./data/data.js"></script>
+
+    <script type="text/javascript">
+		var time_start = power_data[0]["timestamp"];//数据开始时间
+		var time_end = power_data[power_data.length - 1]["timestamp"];//数据结束时间
+
+		time_start = time_start - time_start % 3600000;//数据开始时间取整修正
+		time_end = time_end - (time_end % 14400000) + 14400000;//数据结束时间取整修正
+
+		var step = 1;//鼠标滚轮计数器 //lc_log_data
+		var horizontalMove = 0;//水平移动系数
+		var PixelSum = 300 * 4;//绘图区域宽度
+
+		var TimeZone = time_end - time_start;//时间段宽度
+
+		var Enlarge = 1;
+		var MoveLeftLock = false;
+		var MoveRightLock = false;
+
+		var mouseDownY = 0;
+
+		var LeftZone = mouseDownX;
+		var RightZone = PixelSum - mouseDownX;
+
+		var mouseDownX = PixelSum / 2;
+		var currentTime;
+
+		var kk;
+
+    </script>
+
+</head>
+
+<body style="margin:0;padding:0;background-color:#555;">
+
+
+<br/>
+<div style="width:1200px;height:40px;margin-left:40px;text-align:center;font-size:22px;color:#fff;">
+    <span>RTOS项目可继承的功耗日志模块 V2.0</span>
+</div>
+
+<!--Log文件上传 开始-->
+<!--	<div id="upload" style="position:absolute; visibility:visible; left:5px; top:40px; z-index:2">-->
+<!--		<form method="post" enctype="multipart/form-data" action="/cgi-bin/receive.py">-->
+<!--			<div style="padding-left:10px;color:#fff;">-->
+<!--				<span>Log上传</span>-->
+<!--				<input id="uploadfile" name="uploadfile" type="file" style="width:300px;background-color:#333;border:1px #369 solid;" />-->
+<!--				<input type="submit" name="submit" value="确定"/>-->
+<!--			</div>-->
+<!--		</form>-->
+<!--	</div>-->
+<!--Log文件上传 结束-->
+<br/>
+
+<!--坐标网格的绘制 开始-->
+<div style="width:1240px;height:480px;border:0px #F00 solid;margin:0 auto;background-color:#555;position:absolute;">
+
+    <div style="float:left;width:31px;padding:0 4px;height:480px;border-right:1px #555 dashed;margin:0 auto;background-color:#555;">
+        <div style="border-top:1px #ddd solid;width:100%;height:95px;text-align:center;color:#fff;"><span>100</span>
+        </div>
+        <div style="border-top:1px #ddd solid;width:100%;height:95px;text-align:center;color:#fff;"><span>80</span>
+        </div>
+        <div style="border-top:1px #ddd solid;width:100%;height:95px;text-align:center;color:#fff;"><span>60</span>
+        </div>
+        <div style="border-top:1px #ddd solid;width:100%;height:95px;text-align:center;color:#fff;"><span>40</span>
+        </div>
+        <div style="border-top:1px #ddd solid;width:100%;height:95px;text-align:center;color:#fff;"><span>20</span>
+        </div>
+        <div style="width:100%;height:30px;line-height:30px;color:#fff;text-align:right;color:#fff;"></div>
+    </div>
+
+    <div style="float:left;width:1200px;height:480px;border:0px #555 solid;margin:0 auto;background-color:#abc;">
+        <div style="float:left;width:299px;height:480px;border-right:1px #555 dashed;margin:0 auto;background-color:#ddd;">
+            <div style="border-top:0px #888 dashed;width:100%;height:96px;"></div>
+            <div style="border-top:1px #888 dashed;width:100%;height:95px;"></div>
+            <div style="border-top:1px #888 dashed;width:100%;height:95px;"></div>
+            <div style="border-top:1px #888 dashed;width:100%;height:95px;"></div>
+            <div style="border-top:1px #888 dashed;width:100%;height:95px;"></div>
+            <div style="border-right:1px #fff solid;width:100%;margin-top:4px;height:24px;line-height:24px;text-align:right;color:#fff;">
+                <span id="x_mark3" style="padding-right:4px;">3</span></div>
+        </div>
+
+        <div style="float:left;width:299px;height:480px;border-right:1px #555 dashed;margin:0 auto;background-color:#ddd;">
+            <div style="border-top:0px #888 dashed;width:300px;height:96px;"></div>
+            <div style="border-top:1px #888 dashed;width:300px;height:95px;"></div>
+            <div style="border-top:1px #888 dashed;width:300px;height:95px;"></div>
+            <div style="border-top:1px #888 dashed;width:300px;height:95px;"></div>
+            <div style="border-top:1px #888 dashed;width:300px;height:95px;"></div>
+
+            <div style="border-right:1px #fff solid;width:100%;margin-top:4px;height:24px;line-height:24px;text-align:right;color:#fff;">
+                <span id="x_mark2" style="padding-right:4px;">2</span></div>
+        </div>
+
+        <div style="float:left;width:299px;height:480px;border-right:1px #555 dashed;margin:0 auto;background-color:#ddd;">
+            <div style="border-top:0px #888 dashed;width:300px;height:96px;"></div>
+            <div style="border-top:1px #888 dashed;width:300px;height:95px;"></div>
+            <div style="border-top:1px #888 dashed;width:300px;height:95px;"></div>
+            <div style="border-top:1px #888 dashed;width:300px;height:95px;"></div>
+            <div style="border-top:1px #888 dashed;width:300px;height:95px;"></div>
+            <div style="border-right:1px #fff solid;width:100%;margin-top:4px;height:24px;line-height:24px;text-align:right;color:#fff;">
+                <span id="x_mark1" style="padding-right:4px;">1</span></div>
+        </div>
+
+        <div style="float:left;width:299px;height:480px;border-right:0px #ddd dashed;margin:0 auto;background-color:#ddd;">
+            <div style="border-top:0px #888 dashed;width:300px;height:96px;"></div>
+            <div style="border-top:1px #888 dashed;width:300px;height:95px;"></div>
+            <div style="border-top:1px #888 dashed;width:300px;height:95px;"></div>
+            <div style="border-top:1px #888 dashed;width:300px;height:95px;"></div>
+            <div style="border-top:1px #888 dashed;width:300px;height:95px;"></div>
+            <div style="border-right:1px #fff solid;width:100%;margin-top:4px;height:24px;line-height:24px;text-align:right;color:#fff;">
+                <span id="x_mark0" style="padding-right:4px;">0</span></div>
+        </div>
+        <div style="clear:both;"></div>
+    </div>
+</div>
+<!--坐标网格的绘制 结束-->
+
+<div id='topdiv' style="width:180px;height:480px;border:0px #005 solid;position:absolute;left:1244px;">
+    <script>
+		//右侧进程标识
+		var colorArr = [
+			'#FF0000', '#00FF00', '#0000FF',
+			'#00FFFF', '#FF00FF', '#CC6600',
+			'#AA3AA1', '#999933', '#6699FF',
+			'#993333', '#CC00CC', '#FF9933',
+			'#993366', '#00CC00', '#90EE90',
+			'#8B0000', '#AB82FF', '#EE7AE9',
+			'#FF7F24', '#668B8B'
+		];
+		var titleArr = [
+			'OLED',
+			'AUDIO',
+			'MICROPHONE',
+			'MOTOR',
+			'PPG',
+			'COMPASS',
+			'BAROMATER',
+			'A+G',
+			'BT&BLE',
+			'STM32',
+			'光传感器',
+			'GPS',
+			'WIFI',
+			'NFC',
+			'EMMC',
+			'RAM',
+			'KEY',
+			'BATTERY',
+			'TEMPERATURE',
+			'BATTERY LEVEL'
+		];
+		height_t0 = 21;
+		for (var i = 0; i < titleArr.length; i++) {
+	 		document.write('<div style="width:180px;height:20px;margin-top:1px;line-height:'+height_t0+'px;color:#fff;border-left:4px '+colorArr[i]+' solid;padding:2px 0 0 4px;">'+titleArr[i]+'</div>');
+		}
+
+    </script>
+</div>
+
+<div style="width:1200px;height:480px;border:0px #005 solid;margin:0 auto;position:absolute;left:40px;">
+</div>
+
+<div id="btmdiv2"
+     style="width:1200px;height:40px;border:0px #005 solid;margin:40px auto;position:absolute;left:0px;top:-15px;">
+    <br/>
+    <!--底部按钮部分 开始-->
+    <div style="float:right;width:380px;">
+
+        <div style="width:360px;height:40px;margin:0 auto;border:0px #369 solid;padding-left:100px;">
+            <input type="button" value=" |< " onclick="moveToHead()"
+                   style="margin:0 10px;width:60px;height:32px;line-height:30px;background-color:#369;color:#fff;border:1px #fff solid;">
+            <input type="button" value=" << " onclick="moveToRight()"
+                   style="margin:0 10px;width:60px;height:32px;line-height:30px;background-color:#369;color:#fff;border:1px #fff solid;">
+            <input type="button" value=" >> " onclick="moveToLeft()"
+                   style="margin:0 10px;width:60px;height:32px;line-height:30px;background-color:#369;color:#fff;border:1px #fff solid;">
+            <input type="button" value=" >| " onclick="moveToTail()"
+                   style="margin:0 10px;width:60px;height:32px;line-height:30px;background-color:#369;color:#fff;border:1px #fff solid;">
+        </div>
+    </div>
+    <!--底部按钮部分 结束-->
+    <div style="display:none;"><input id="box" value="0" style="display:none;"/></div>
+</div>
+
+<!--绘图部分 开始-->
+<div id="drawarea"
+     style="width:1200px;height:480px;border:0px #555 solid;margin:0 auto;position:absolute;left:40px;overflow:hidden;">
+
+    <canvas id="mc" width="1200" height="480" style="width:1200px;height:480px;" onclick="clickCanvas()">
+    </canvas>
+
+    <script type="text/javascript">
+		//清空画布
+		function clearPic() {
+			var canvas = document.getElementById('mc'); // 获取canvas元素对应的DOM对象
+			var ctx = canvas.getContext('2d'); // 获取在canvas上绘图的CanvasRenderingContext2D对象
+
+			var w = canvas.width;
+			var h = canvas.height;
+
+			ctx.clearRect(0, 0, w, h);
+			canvas.width = canvas.width;
+		}
+		var height_t = 22;
+		var height_h = 23;
+		//初始化绘图
+		function drawInit() {
+			var X_PIXEL = 300 * 4;
+			var Y_PIXEL = 480;
+
+			var draw_time_start = time_start;
+			var draw_time_end = time_end;
+			var time_area = draw_time_end - draw_time_start;
+
+			var pixel_sum = X_PIXEL;
+			kk = (pixel_sum / time_area); // 比例尺
+
+			//画线
+			var canvas = document.getElementById('mc'); // 获取canvas元素对应的DOM对象
+			var ctx = canvas.getContext('2d'); // 获取在canvas上绘图的CanvasRenderingContext2D对象
+			ctx.strokeStyle = "#000"; // 设置线条颜色
+			ctx.lineWidth = 3; // 设置线条宽度
+
+			var x = (power_data[0]["timestamp"] - draw_time_start) * kk;
+			var y = 480 - 4.8 * power_data[0]["powervalue"];
+			ctx.moveTo(x, y);
+			for (var i=1; i < power_data.length; i++) {
+		 		x = (power_data[i]["timestamp"] - draw_time_start) * kk;
+		 		y = 480 - 4.8 * power_data[i]["powervalue"];
+		 		ctx.lineTo(x, y);
+			}
+			ctx.stroke();
+
+			//设置横坐标刻度值，开始
+			var x_time0 = draw_time_end;
+			var x_time1 = draw_time_end - time_area / 4;
+			var x_time2 = draw_time_end - time_area / 4 - time_area / 4;
+			var x_time3 = draw_time_end - time_area / 4 - time_area / 4 - time_area / 4;
+			//console.log("time_start:"+time_start+"-time_end:"+time_end);
+			//var timestamp = 1620803114111;
+			var x_time_mark0 = new Date(x_time0);
+			var x_time_mark1 = new Date(x_time1);
+			var x_time_mark2 = new Date(x_time2);
+			var x_time_mark3 = new Date(x_time3);
+			document.getElementById("x_mark0").innerHTML= x_time_mark0.format("yyyy-MM-dd hh:mm");
+			document.getElementById("x_mark1").innerHTML= x_time_mark1.format("yyyy-MM-dd hh:mm");
+			document.getElementById("x_mark2").innerHTML= x_time_mark2.format("yyyy-MM-dd hh:mm");
+			document.getElementById("x_mark3").innerHTML= x_time_mark3.format("yyyy-MM-dd hh:mm");
+			//设置横坐标刻度值，结束
+
+			//绘制信息采集点的彩色块，开始
+			for (var i = 0; i < power_log_data.length; i++) {
+				var color_select = colorArr[i];
+				for (var j = 0; j < power_log_data[i].length; j++) {
+					var colorbox_top = height_h * i;
+					var colorbox_left = (power_log_data[i][j]["timestamp1"] - draw_time_start) * kk;
+					var width_t = power_log_data[i][j]["timestamp2"] - power_log_data[i][j]["timestamp1"];
+					var fin_width = width_t * (120/(x_time2-x_time3)) ; //120为四分之一长度,比例收缩
+					var msgbox_left = colorbox_left;
+					var msgbox_top = colorbox_top;
+					if (msgbox_left > 1200 - 180) {
+						msgbox_left = msgbox_left - 175;
+					}
+
+					document.write('<div id="colorblock_'+i+'_'+j+'" style="position:absolute;width:'+fin_width+'px;height:'+ height_t +'px;margin-top:1px;background-color:'+color_select+';left:'+colorbox_left+'px;top:'+colorbox_top+'px;opacity:0.6;" onclick="displayMsgBox('+i+','+j+',this)"></div>');
+				}
+			}
+			//绘制信息采集点的彩色块，结束
+		}
+
+		//重新绘图
+		function reDraw(step, horizontalMove) {
+			var X_PIXEL = 300 * 4;
+			var Y_PIXEL = 480;
+
+			if (mouseDownX < 0 || mouseDownX > X_PIXEL) {
+				retun;
+			}
+
+			leftPixels = mouseDownX;
+			rightPixels = X_PIXEL - mouseDownX;
+
+			var time_area = time_end - time_start;
+			var pixel_sum = X_PIXEL;
+			var kk = (pixel_sum / time_area) * step; // 比例系数
+			time_step = 1 / kk * 300;
+
+			var draw_time_start = time_start + time_step * horizontalMove;
+			clearPic();
+
+			//画线
+			var canvas2 = document.getElementById('mc'); // 获取canvas元素对应的DOM对象
+			var ctx2 = canvas2.getContext('2d'); // 获取在canvas上绘图的CanvasRenderingContext2D对象
+			ctx2.strokeStyle = "#000"; // 设置线条颜色
+			ctx2.lineWidth = 3; // 设置线条宽度
+
+			var x = (power_data[0]["timestamp"] - draw_time_start) * kk;
+			var y = 480 - 4.8 * power_data[0]["powervalue"];
+			ctx2.moveTo(x, y);
+			for (var i=1; i < power_data.length; i++) {
+		 		x = (power_data[i]["timestamp"] - draw_time_start) * kk;
+		 		y = 480 - 4.8 * power_data[i]["powervalue"];
+		 		ctx2.lineTo(x, y);
+			}
+			ctx2.stroke();
+
+			//设置横坐标刻度值
+			var x_time3,x_time2,x_time1,x_time0;
+			x_time3 = draw_time_start + time_step;
+			x_time2 = x_time3 + time_step;
+			x_time1 = x_time2 + time_step;
+			x_time0 = x_time1 + time_step;
+
+			//console.log("time_start:"+time_start+"-time_end:"+time_end);
+			//var timestamp = 1620803114111;
+			var x_time_mark0 = new Date(x_time0);
+			var x_time_mark1 = new Date(x_time1);
+			var x_time_mark2 = new Date(x_time2);
+			var x_time_mark3 = new Date(x_time3);
+			document.getElementById("x_mark0").innerHTML= x_time_mark0.format("yyyy-MM-dd hh:mm");
+			document.getElementById("x_mark1").innerHTML= x_time_mark1.format("yyyy-MM-dd hh:mm");
+			document.getElementById("x_mark2").innerHTML= x_time_mark2.format("yyyy-MM-dd hh:mm");
+			document.getElementById("x_mark3").innerHTML= x_time_mark3.format("yyyy-MM-dd hh:mm");
+
+			for (var i=0; i < power_log_data.length; i++) {
+				var color_select = colorArr[i];
+				for (var j=0; j < power_log_data[i].length; j++) {
+			 		var colorbox_top = height_h * i;
+					var colorbox_left = (power_log_data[i][j]["timestamp1"] - draw_time_start) * kk;
+					var width_t = power_log_data[i][j]["timestamp2"] - power_log_data[i][j]["timestamp1"];
+					var fin_width = width_t * (120/(x_time2-x_time3)) ; //120为四分之一长度,比例收缩
+					var colorblock_id = 'colorblock_'+i+'_'+j;
+					document.getElementById(colorblock_id).style.left = colorbox_left+"px";
+					document.getElementById(colorblock_id).style.width = fin_width+"px";
+					document.getElementById(colorblock_id).style.top = colorbox_top+"px";
+				}
+			}
+		}
+
+		drawInit();
+
+    </script>
+
+    <!--信息框代码 开始-->
+    <div id="msgbox"
+         style="width:180px;height:160px;border:2px #369 solid;text-align:left;position:absolute;top:30px;left:500px;background-color: #369;opacity:0.8;display:none;z-index:999;color:yellow;font-size:14px;"
+         onclick="undisplayMsgBox()">
+		<span>
+			data<br>
+		</span>
+    </div>
+    <!--信息框代码 结束-->
+
+</div>
+<!--绘图部分 结束-->
+
+<script type="text/javascript">
+		function displayMsgBox(arr_id1, arr_id2, obj) {
+
+			var msgbox = document.getElementById("msgbox");
+			var outerEle = document.getElementById('drawarea');
+<!--			var outerEle = document.getElementById("colorblock_'+arr_id1+'_'+arr_id2+'");-->
+            var msgbox_left = 0;
+            let msgbox_top = 0;
+            var left = 0;
+            var top = 0;
+    		outerEle.onclick = function(e) {
+        		console.log(e.pageX);
+        		console.log(e.pageY);
+                left = e.pageX;
+        		top = e.pageY;
+        		if (left + 180 > 1240){         //控制信息框范围，保证在绘图范围内
+			        left = 1240 - 180;
+			    }
+			    if (top + 160 > 560){
+			        top = 560 - 160;
+			    }
+        		msgbox_left = left;
+			    msgbox_top = top;
+        		msgbox.style.left = msgbox_left - 30+"px";//"0px";
+    		    msgbox.style.top = msgbox_top - 80+"px" ;//"100px";
+    		    if (msgbox.style.display == "block") {
+                    msgbox.style.display = 'none';
+                } else {
+                    msgbox.style.display = 'block';
+                }
+			    msgbox.innerHTML = ("<span>"+"Start time: "+"<br>"+power_log_data[arr_id1][arr_id2]["localtime1"]+"<br>"+
+					"End time: "+"<br>"+power_log_data[arr_id1][arr_id2]["localtime2"]+"<br>"+
+					"Moudle_type : "+power_log_data[arr_id1][arr_id2]["lc_type"]+"<br>"+
+					"From_status : "+power_log_data[arr_id1][arr_id2]["lc_status1"]+"<br>"+
+					"To : "+power_log_data[arr_id1][arr_id2]["lc_status2"]+"<br>"+"</span>");
+    		}
+		}
+
+        function getElementLeft(element){
+            var actualLeft = element.offsetLeft;
+            var current = element.offsetParent;
+
+            while (current != null){
+                actualLeft += current.offsetLeft;
+                current = current.offsetParent;
+            }
+            return actualLeft;
+        }
+        function getElementTop(element){
+            var actualTop = element.offsetTop;
+            var current = element.offsetParent;
+
+            while (current != null){
+                actualTop += current.offsetTop;
+                current = current.offsetParent;
+            }
+            return actualTop;
+        }
+
+		function undisplayMsgBox() {
+			var msgbox = document.getElementById("msgbox");
+			msgbox.style.display = "none";
+		}
+
+		function moveToLeft() {
+			horizontalMove = horizontalMove + 1;
+<!--			var max_steps = step * 2;-->
+<!--			if (horizontalMove > max_steps) {-->
+<!--				horizontalMove = max_steps  ;-->
+<!--			}-->
+			reDraw(step, horizontalMove);
+		}
+
+		function moveToRight() {
+			horizontalMove = horizontalMove - 1;
+<!--			var max_steps = step * -2;-->
+<!--			if (horizontalMove < max_steps) {-->
+<!--				horizontalMove = max_steps ;-->
+<!--			}-->
+			reDraw(step, horizontalMove);
+		}
+
+		function moveToHead() {
+			horizontalMove = step * -0.5 ;    //缩放比例
+			reDraw(step, horizontalMove);
+		}
+
+		function moveToTail() {
+			horizontalMove = step * 4 - step *0.75;   //缩放比例
+ 			reDraw(step, horizontalMove);
+		}
+
+		function clickCanvas() {
+			var canvas = document.getElementById("mc");
+			canvas.onmousedown = function(evt) {
+				evt = window.event || evt;
+				var rect = canvas.getBoundingClientRect();
+				arcX = (evt.pageX - rect.left) * (canvas.width / rect.width);
+				arcY = (evt.pageY - rect.top) * (canvas.height / rect.height);
+				//console.log(arcX+ '-' +arcY);
+				mouseDownX = arcX;
+				mouseDownY = arcY;
+				//console.log('mouseDownX:'+mouseDownX+ ' mouseDownY:' + mouseDownY);
+			}
+		}
+
+
+</script>
+
+</body>
+</html>
+
+<script type="text/javascript">
+	//鼠标滚轮事件响应，开始
+    window.onload = function () {
+        var box = document.getElementById('drawarea');
+
+        box.onmousewheel = callbackfunction;
+        addEventFunc(box, 'DOMMouseScroll', callbackfunction);
+
+        function callbackfunction(event) {
+            event = event || window.event;
+            // val = event.wheelDelta;
+            var temp=true;//临时变量,用来标记鼠标滚轮滚动方向,假设默认向下
+            temp=event.wheelDelta ? event.wheelDelta<0:event.detail>0;
+
+            if (temp) { // 鼠标滚轮滚动方向向下
+               step--;
+            } else { // 鼠标滚轮滚动方向向上
+               step++;
+            }
+
+            if (step < 1) {
+            	step = 1
+            }
+
+            Enlarge = step;
+            console.log('Enlarge:'+Enlarge);
+            reDraw(step, horizontalMove);
+            if(event.preventDefault){
+               event.preventDefault();
+            }
+
+            return false;
+        }
+
+        function addEventFunc(obj, eventname, callbackfunction) {
+            if (obj.addEventListener) {
+                obj.addEventListener(eventname, callbackfunction, false);
+            }
+        }
+    }
+    //鼠标滚轮事件响应，结束
+
+</script>
